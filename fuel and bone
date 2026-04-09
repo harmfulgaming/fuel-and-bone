@@ -1,0 +1,120 @@
+import json
+import os
+from flask import Flask, render_template_string, request, redirect, url_for
+
+app = Flask(__name__)
+DB_FILE = 'fuel_and_bone_ledger.json'
+
+# --- LEDGER LOGIC ---
+def get_ledger():
+    if os.path.exists(DB_FILE):
+        with open(DB_FILE, 'r') as f:
+            return json.load(f)
+    return []
+
+def commit_to_ledger(data):
+    with open(DB_FILE, 'w') as f:
+        json.dump(data, f, indent=4)
+
+# --- TERMINAL UI ---
+UI_HTML = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FUEL & BONE</title>
+    <style>
+        body { background: #0a0a0a; color: #d1d1d1; font-family: 'Courier New', monospace; margin: 0; padding: 20px; }
+        .terminal { max-width: 600px; margin: auto; border: 1px solid #444; padding: 20px; background: #111; box-shadow: 0 0 15px #000; }
+        h1 { color: #ff4500; text-transform: uppercase; letter-spacing: 5px; border-bottom: 2px solid #ff4500; margin-top: 0; }
+        .status { font-size: 0.7em; color: #666; margin-bottom: 20px; text-align: right; }
+        .entry-form { border: 1px dashed #ff4500; padding: 15px; margin-bottom: 30px; }
+        input, button { background: #000; border: 1px solid #444; color: #d1d1d1; padding: 8px; font-family: inherit; }
+        button { color: #ff4500; font-weight: bold; cursor: pointer; text-transform: uppercase; }
+        button:hover { background: #ff4500; color: #000; }
+        .scrap-item { border-left: 4px solid #ff4500; background: #1a1a1a; padding: 15px; margin: 10px 0; display: flex; justify-content: space-between; align-items: center; }
+        .sold { opacity: 0.3; border-left-color: #333; }
+        .cal-price { font-size: 1.2em; color: #ff4500; font-weight: bold; }
+        .tag { font-size: 0.7em; background: #333; padding: 2px 5px; color: #aaa; }
+    </style>
+</head>
+<body>
+    <div class="terminal">
+        <h1>FUEL & BONE</h1>
+        <div class="status">ENCRYPTED_P2P_V.1.0 // CALORIE_STANDARD_ACTIVE</div>
+
+        <div class="entry-form">
+            <small style="color:#ff4500">> BROADCAST NEW SCRAP</small><br><br>
+            <form action="/list" method="post">
+                <input type="text" name="item" placeholder="ITEM NAME" required style="width:60%">
+                <input type="number" name="cals" placeholder="CALORIES" required style="width:25%">
+                <button type="submit">POST</button>
+            </form>
+        </div>
+
+        <h3>MARKET_FEED</h3>
+        {% for item in ledger %}
+        <div class="scrap-item {{ 'sold' if item.sold else '' }}">
+            <div>
+                <strong>{{ item.name }}</strong> <span class="tag">#{{ item.id }}</span><br>
+                <small>SOURCE: {{ item.seller }}</small>
+            </div>
+            <div style="text-align: right;">
+                <div class="cal-price">{{ item.cals }} CAL</div>
+                {% if not item.sold %}
+                <form action="/buy/{{ item.id }}" method="post">
+                    <button type="submit">CLAIM</button>
+                </form>
+                {% else %}
+                <span style="color: #444;">[SCAVENGED]</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html>
+"""
+
+# --- API ROUTES ---
+@app.route('/')
+def index():
+    return render_template_string(UI_HTML, ledger=get_ledger())
+
+@app.route('/list', methods=['POST'])
+def list_item():
+    ledger = get_ledger()
+    ledger.append({
+        "id": len(ledger) + 1,
+        "name": request.form.get('item').upper(),
+        "cals": int(request.form.get('cals')),
+        "seller": "NODE_01",
+        "sold": False
+    })
+    commit_to_ledger(ledger)
+    return redirect(url_for('index'))
+
+@app.route('/buy/<int:item_id>', methods=['POST'])
+def buy_item(item_id):
+    ledger = get_ledger()
+    for item in ledger:
+        if item['id'] == item_id:
+            item['sold'] = True
+    commit_to_ledger(ledger)
+    return redirect(url_for('index'))
+
+if __name__ == '__main__':
+    # Runs on localhost:5000
+    app.run(debug=True)
+    <input type="text" name="sector" placeholder="SECTOR (e.g. A-12)" required style="width:20%">
+<input type="number" name="condition" placeholder="COND %" required style="width:15%">
+ledger.append({
+    "id": len(ledger) + 1,
+    "name": request.form.get('item').upper(),
+    "cat": request.form.get('cat'),
+    "cals": int(request.form.get('cals')),
+    "sector": request.form.get('sector').upper(),
+    "condition": request.form.get('condition'),
+    "sold": False
+})
+
+    
