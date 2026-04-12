@@ -26,7 +26,6 @@ def index():
 @app.route('/list', methods=['POST'])
 def list_item():
     ledger = get_ledger()
-    # Pulling 'cals' because that's what your HTML says!
     new_item = {
         'id': len(ledger) + 1,
         'name': request.form.get('item'),
@@ -43,7 +42,8 @@ def list_item():
 def buy_item(item_id):
     ledger = get_ledger()
     for item in ledger:
-        if item['id'] == item_id:
+        # Using .get('id') is safer to prevent crashes
+        if item.get('id') == item_id:
             item['sold'] = True
             break
     commit_to_ledger(ledger)
@@ -52,10 +52,9 @@ def buy_item(item_id):
 @app.route('/scrap/<int:item_id>', methods=['POST'])
 def scrap_item(item_id):
     ledger = get_ledger()
-    ledger = [item for item in ledger if item['id'] != item_id]
+    ledger = [item for item in ledger if item.get('id') != item_id]
     commit_to_ledger(ledger)
     return redirect(url_for('index'))
 
-# This must be the VERY LAST thing in the file
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
