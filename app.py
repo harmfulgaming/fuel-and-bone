@@ -22,7 +22,7 @@ def commit_to_ledger(data):
 @app.route('/')
 def index():
     ledger = get_ledger()
-    # This creates the 'online_users' variable for your HTML
+    # This generates the random number for your HTML
     online_count = random.randint(3, 9) 
     return render_template('index.html', ledger=ledger, online_users=online_count)
 
