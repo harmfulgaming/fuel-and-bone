@@ -23,13 +23,14 @@ def index():
 @app.route('/list', methods=['POST'])
 def list_item():
     ledger = get_ledger()
-    new_item = {
-        'id': len(ledger) + 1,
-        'name': request.form.get('item'),
-        'cals': request.form.get('cals'),
-        'sector': request.form.get('sector'),
-        'condition': request.form.get('condition'),
-        'sold': False
+   new_item = {
+    'id': len(ledger) + 1,
+    'name': request.form.get('item'),
+    'price': request.form.get('price'), # Changed from cals
+    'sector': request.form.get('sector'),
+    'condition': request.form.get('condition'),
+    'sold': False
+}
     }
     ledger.append(new_item)
     commit_to_ledger(ledger)
