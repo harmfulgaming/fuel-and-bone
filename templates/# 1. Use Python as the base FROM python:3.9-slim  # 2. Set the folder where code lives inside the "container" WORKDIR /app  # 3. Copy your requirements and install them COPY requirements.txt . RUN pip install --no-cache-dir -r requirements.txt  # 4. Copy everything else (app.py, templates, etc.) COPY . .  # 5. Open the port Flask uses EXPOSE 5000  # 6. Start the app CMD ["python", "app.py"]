@@ -1,0 +1,18 @@
+# 1. Use Python as the base
+FROM python:3.9-slim
+
+# 2. Set the folder where code lives inside the "container"
+WORKDIR /app
+
+# 3. Copy your requirements and install them
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 4. Copy everything else (app.py, templates, etc.)
+COPY . .
+
+# 5. Open the port Flask uses
+EXPOSE 5000
+
+# 6. Start the app
+CMD ["python", "app.py"]
