@@ -1,5 +1,14 @@
 import json
 import os
+import random
+
+@app.route('/')
+def index():
+    ledger = get_ledger()
+    # This simulates 3 to 9 active scavengers on the network
+    online_count = random.randint(3, 9) 
+    return render_template('index.html', ledger=ledger, online_users=online_count)
+
 from flask import Flask, render_template, request, redirect, url_for
 
 app = Flask(__name__)
