@@ -1,14 +1,6 @@
 import json
 import os
 import random
-
-@app.route('/')
-def index():
-    ledger = get_ledger()
-    # This simulates 3 to 9 active scavengers on the network
-    online_count = random.randint(3, 9) 
-    return render_template('index.html', ledger=ledger, online_users=online_count)
-
 from flask import Flask, render_template, request, redirect, url_for
 
 app = Flask(__name__)
@@ -30,7 +22,9 @@ def commit_to_ledger(data):
 @app.route('/')
 def index():
     ledger = get_ledger()
-    return render_template('index.html', ledger=ledger)
+    # This creates the 'online_users' variable for your HTML
+    online_count = random.randint(3, 9) 
+    return render_template('index.html', ledger=ledger, online_users=online_count)
 
 @app.route('/list', methods=['POST'])
 def list_item():
@@ -51,7 +45,6 @@ def list_item():
 def buy_item(item_id):
     ledger = get_ledger()
     for item in ledger:
-        # Using .get('id') is safer to prevent crashes
         if item.get('id') == item_id:
             item['sold'] = True
             break
