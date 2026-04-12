@@ -45,7 +45,7 @@ def buy_item(item_id):
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=8080)
+    app.run(debug=True, host='0.0.0.0', port=5000)
 @app.route('/scrap/<int:item_id>', methods=['POST'])
 def scrap_item(item_id):
     ledger = get_ledger()
