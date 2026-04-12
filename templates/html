@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FUEL & BONE | Terminal</title>
+    <style>
+        :root { --glow: #ff4500; --bg: #050505; --surface: #121212; --text: #d1d1d1; }
+        body { background: var(--bg); color: var(--text); font-family: 'Courier New', monospace; margin: 0; padding: 20px; overflow-x: hidden; }
+        body::before { content: " "; display: block; position: fixed; top: 0; left: 0; bottom: 0; right: 0; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); z-index: 2; background-size: 100% 4px, 3px 100%; pointer-events: none; }
+        .terminal { max-width: 800px; margin: auto; border: 2px solid #333; padding: 30px; background: var(--surface); box-shadow: 0 0 20px rgba(0,0,0,1), inset 0 0 10px rgba(255, 69, 0, 0.1); position: relative; }
+        h1 { color: var(--glow); text-transform: uppercase; letter-spacing: 8px; text-align: center; text-shadow: 0 0 10px var(--glow); border-bottom: 1px solid var(--glow); padding-bottom: 10px; }
+        .entry-form { background: #000; border: 1px solid #444; padding: 20px; margin-bottom: 40px; }
+        input { background: #0a0a0a; border: 1px solid #333; color: var(--glow); padding: 10px; margin: 5px; outline: none; }
+        button { background: var(--glow); color: #000; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
+        .item-card { background: #181818; border-left: 5px solid var(--glow); padding: 20px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .sold { border-left-color: #333; opacity: 0.4; filter: grayscale(1); }
+        .price-tag { font-size: 1.5rem; color: var(--glow); font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="terminal">
+        <h1>Fuel & Bone</h1>
+        <div class="entry-form">
+            <form action="/list" method="post">
+                <input type="text" name="item" placeholder="SCRAP NAME" required style="width: 90%;">
+                <div style="display: flex;">
+                    <input type="number" name="cals" placeholder="CALS" required style="flex: 1;">
+                    <input type="text" name="sector" placeholder="SECTOR" required style="flex: 1;">
+                    <input type="number" name="condition" placeholder="COND %" required style="flex: 1;">
+                    <button type="submit">Broadcast</button>
+                </div>
+            </form>
+        </div>
+        <div class="feed">
+            {% for item in ledger %}
+            <div class="item-card {{ 'sold' if item.sold else '' }}">
+                <div>
+                    <h2>{{ item.name }}</h2>
+                    <small>SEC: {{ item.sector }} | CND: {{ item.condition }}%</small>
+                </div>
+                <div>
+                    <div class="price-tag">{{ item.cals }} CAL</div>
+                    {% if not item.sold %}
+                    <form action="/buy/{{ item.id }}" method="post"><button type="submit">Claim</button></form>
+                    {% else %}
+                    <span>[CLAIMED]</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>
