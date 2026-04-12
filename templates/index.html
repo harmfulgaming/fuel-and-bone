@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -63,15 +63,15 @@
             text-transform: uppercase;
         }
 
-        /* NEW CODE: GREEN PULSE INDICATOR */
+        /* PULSE EFFECT */
         .online-indicator {
             color: #00ff00;
             text-shadow: 0 0 8px #00ff00;
-            animation: pulse 2s infinite;
+            animation: beacon 2s infinite; /* Renamed to 'beacon' to force reload */
         }
-        @keyframes pulse {
+        @keyframes beacon {
             0% { opacity: 1; }
-            50% { opacity: 0.4; }
+            50% { opacity: 0.3; }
             100% { opacity: 1; }
         }
 
@@ -91,8 +91,6 @@
             outline: none;
         }
 
-        input:focus { border-color: var(--glow); }
-
         button {
             background: var(--glow);
             color: #000;
@@ -101,12 +99,6 @@
             font-weight: bold;
             cursor: pointer;
             text-transform: uppercase;
-            transition: 0.2s;
-        }
-
-        button:hover {
-            background: #fff;
-            box-shadow: 0 0 15px var(--glow);
         }
 
         .item-card {
@@ -117,14 +109,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            transition: 0.3s;
         }
 
-        .item-card:hover { background: #222; }
-
-        .item-info h2 { margin: 0; color: #fff; letter-spacing: 2px; }
-        .details { font-size: 0.8rem; color: #888; margin-top: 5px; }
-        
         .price-tag {
             text-align: right;
             font-size: 1.5rem;
@@ -160,9 +146,9 @@
 
         <div class="entry-form">
             <form action="/list" method="post">
-                <input type="text" name="item" placeholder="SCRAP NAME" required style="width: 90%;">
+                <input type="text" name="item" placeholder="SCRAP DESCRIPTION" required style="width: 90%;">
                 <div style="display: flex; flex-wrap: wrap;">
-                    <input type="number" name="cals" placeholder="CALS" required style="flex: 1;">
+                    <input type="number" name="cals" placeholder="CURRENCY (₵)" required style="flex: 1;">
                     <input type="text" name="sector" placeholder="SECTOR" required style="flex: 1;">
                     <input type="number" name="condition" placeholder="COND %" required style="flex: 1;">
                     <button type="submit" style="flex: 1;">Broadcast</button>
@@ -178,11 +164,11 @@
                     <div class="details">
                         <span class="badge">SEC: {{ item.sector }}</span>
                         <span class="badge">CND: {{ item.condition }}%</span>
-                        <span>ORIGIN: EXTERNAL_WASTE</span>
+                        <span>NET: VERIFIED_TRADE</span>
                     </div>
                 </div>
                 <div>
-                    <div class="price-tag">{{ item.cals }} CAL</div>
+                    <div class="price-tag">₵{{ item.cals }}</div>
                     {% if not item.sold %}
                     <form action="/buy/{{ item.id }}" method="post">
                         <button type="submit">Claim</button>
