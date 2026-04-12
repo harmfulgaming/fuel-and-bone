@@ -1,119 +1,187 @@
-import json
-import os
-from flask import Flask, render_template, request, redirect, url_for
-
-app = Flask(__name__)
-DB_FILE = 'fuel_and_bone_ledger.json'
-
-# --- LEDGER LOGIC ---
-def get_ledger():
-    if os.path.exists(DB_FILE):
-        with open(DB_FILE, 'r') as f:
-            return json.load(f)
-    return []
-
-def commit_to_ledger(data):
-    with open(DB_FILE, 'w') as f:
-        json.dump(data, f, indent=4)
-
-# --- ROUTES ---
-@app.route('/')
-def index():
-    # Flask automatically looks in the /templates folder for index.html
-    return render_template('index.html', ledger=get_ledger())
-
-@app.route('/list', methods=['POST'])
-def list_item():
-    ledger = get_ledger()
-    ledger.append({
-        "id": len(ledger) + 1,
-        "name": request.form.get('item').upper(),
-        "cals": int(request.form.get('cals')),
-        "sector": request.form.get('sector').upper(),
-        "condition": request.form.get('condition'),
-        "sold": False
-    })
-    commit_to_ledger(ledger)
-    return redirect(url_for('index'))
-
-@app.route('/buy/<int:item_id>', methods=['POST'])
-def buy_item(item_id):
-    ledger = get_ledger()
-    for item in ledger:
-        if item['id'] == item_id:
-            item['sold'] = True
-    commit_to_ledger(ledger)
-    return redirect(url_for('index'))
-
-if __name__ == '__main__':
-    app.run(debug=True)
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FUEL & BONE | Terminal</title>
     <style>
-        body { background: #0a0a0a; color: #d1d1d1; font-family: 'Courier New', monospace; margin: 0; padding: 20px; }
-        .terminal { max-width: 700px; margin: auto; border: 1px solid #444; padding: 20px; background: #111; box-shadow: 0 0 15px #000; }
-        h1 { color: #ff4500; text-transform: uppercase; letter-spacing: 5px; border-bottom: 2px solid #ff4500; margin-top: 0; }
+        :root {
+            --glow: #ff4500;
+            --bg: #050505;
+            --surface: #121212;
+            --text: #d1d1d1;
+        }
+
+        body { 
+            background: var(--bg); 
+            color: var(--text); 
+            font-family: 'Courier New', monospace; 
+            margin: 0; 
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        /* Scanline Effect */
+        body::before {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2;
+            background-size: 100% 4px, 3px 100%;
+            pointer-events: none;
+        }
+
+        .terminal { 
+            max-width: 800px; 
+            margin: auto; 
+            border: 2px solid #333; 
+            padding: 30px; 
+            background: var(--surface);
+            box-shadow: 0 0 20px rgba(0,0,0,1), inset 0 0 10px rgba(255, 69, 0, 0.1);
+            position: relative;
+        }
+
+        h1 { 
+            color: var(--glow); 
+            text-transform: uppercase; 
+            letter-spacing: 8px; 
+            text-align: center;
+            text-shadow: 0 0 10px var(--glow);
+            border-bottom: 1px solid var(--glow);
+            padding-bottom: 10px;
+        }
+
+        .stats-bar {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        .entry-form {
+            background: #000;
+            border: 1px solid #444;
+            padding: 20px;
+            margin-bottom: 40px;
+        }
+
+        input {
+            background: #0a0a0a;
+            border: 1px solid #333;
+            color: var(--glow);
+            padding: 10px;
+            margin: 5px;
+            outline: none;
+        }
+
+        input:focus { border-color: var(--glow); }
+
+        button {
+            background: var(--glow);
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background: #fff;
+            box-shadow: 0 0 15px var(--glow);
+        }
+
+        .item-card {
+            background: #181818;
+            border-left: 5px solid var(--glow);
+            padding: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: 0.3s;
+        }
+
+        .item-card:hover { background: #222; }
+
+        .item-info h2 { margin: 0; color: #fff; letter-spacing: 2px; }
+        .details { font-size: 0.8rem; color: #888; margin-top: 5px; }
         
-        .system-diagnostics { display: flex; gap: 20px; font-size: 0.7em; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 20px; color: #666; }
-        .status-ok { color: #00ff00; }
+        .price-tag {
+            text-align: right;
+            font-size: 1.5rem;
+            color: var(--glow);
+            font-weight: bold;
+        }
 
-        .entry-form { border: 1px dashed #ff4500; padding: 15px; margin-bottom: 30px; }
-        input, button { background: #000; border: 1px solid #444; color: #d1d1d1; padding: 8px; font-family: inherit; margin: 2px; }
-        button { color: #ff4500; font-weight: bold; cursor: pointer; text-transform: uppercase; border: 1px solid #ff4500; }
-        button:hover { background: #ff4500; color: #000; transition: 0.3s; }
+        .sold { 
+            border-left-color: #333;
+            opacity: 0.4;
+            filter: grayscale(1);
+        }
 
-        .scrap-item { border-left: 4px solid #ff4500; background: #1a1a1a; padding: 15px; margin: 10px 0; display: flex; justify-content: space-between; align-items: center; }
-        .sold { opacity: 0.2; border-left-color: #333; filter: grayscale(1); }
-        .tag { font-size: 0.7em; background: #333; padding: 2px 5px; color: #aaa; margin-left: 5px; text-transform: uppercase; }
-        .cal-display { color: #ff4500; font-weight: bold; font-size: 1.2em; }
+        .badge {
+            background: #333;
+            color: #aaa;
+            padding: 2px 8px;
+            font-size: 0.7rem;
+            margin-right: 5px;
+            border-radius: 3px;
+        }
     </style>
 </head>
 <body>
     <div class="terminal">
-        <h1>FUEL & BONE</h1>
-        
-        <div class="system-diagnostics">
-            <span>NODE: <span class="status-ok">ACTIVE</span></span>
-            <span>DATABASE: <span class="status-ok">LOCAL_JSON</span></span>
-            <span>ENCRYPTION: <span class="status-ok">ENABLED</span></span>
+        <div class="stats-bar">
+            <span>System: Stable</span>
+            <span>Uptime: 144.2h</span>
+            <span>Node: 0x882</span>
         </div>
 
+        <h1>Fuel & Bone</h1>
+
         <div class="entry-form">
-            <small style="color:#ff4500">> BROADCAST_NEW_DATA</small><br><br>
             <form action="/list" method="post">
-                <input type="text" name="item" placeholder="ITEM NAME" required style="width:40%">
-                <input type="number" name="cals" placeholder="CALS" required style="width:15%">
-                <input type="text" name="sector" placeholder="SECTOR" required style="width:15%">
-                <input type="number" name="condition" placeholder="COND%" required style="width:12%">
-                <button type="submit">POST</button>
+                <input type="text" name="item" placeholder="SCRAP NAME" required style="width: 90%;">
+                <div style="display: flex; flex-wrap: wrap;">
+                    <input type="number" name="cals" placeholder="CALS" required style="flex: 1;">
+                    <input type="text" name="sector" placeholder="SECTOR" required style="flex: 1;">
+                    <input type="number" name="condition" placeholder="COND %" required style="flex: 1;">
+                    <button type="submit" style="flex: 1;">Broadcast</button>
+                </div>
             </form>
         </div>
 
-        <h3>MARKET_FEED</h3>
-        {% for item in ledger %}
-        <div class="scrap-item {{ 'sold' if item.sold else '' }}">
-            <div>
-                <strong>{{ item.name }}</strong> 
-                <span class="tag">{{ item.sector }}</span> 
-                <span class="tag">CND:{{ item.condition }}%</span><br>
-                <small>ID: #00{{ item.id }} | ORIGIN: P2P_NODE_01</small>
+        <div class="feed">
+            {% for item in ledger %}
+            <div class="item-card {{ 'sold' if item.sold else '' }}">
+                <div class="item-info">
+                    <h2>{{ item.name }}</h2>
+                    <div class="details">
+                        <span class="badge">SEC: {{ item.sector }}</span>
+                        <span class="badge">CND: {{ item.condition }}%</span>
+                        <span>ORIGIN: EXTERNAL_WASTE</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="price-tag">{{ item.cals }} CAL</div>
+                    {% if not item.sold %}
+                    <form action="/buy/{{ item.id }}" method="post">
+                        <button type="submit">Claim</button>
+                    </form>
+                    {% else %}
+                    <div style="color: #444; text-transform: uppercase; font-size: 0.8rem;">[Claimed]</div>
+                    {% endif %}
+                </div>
             </div>
-            <div style="text-align: right;">
-                <div class="cal-display">{{ item.cals }} CAL</div>
-                {% if not item.sold %}
-                <form action="/buy/{{ item.id }}" method="post">
-                    <button type="submit">CLAIM</button>
-                </form>
-                {% else %}
-                <span style="color: #444;">[CLAIMED]</span>
-                {% endif %}
-            </div>
+            {% endfor %}
         </div>
-        {% endfor %}
     </div>
 </body>
 </html>
-
