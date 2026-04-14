@@ -1,45 +1,23 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>SCAV-NET | Terminal</title>
-    <style>
-        :root { --glow: #ff4500; --bg: #050505; --text: #d1d1d1; --sub: #00ff00; }
-        body { background: var(--bg); color: var(--text); font-family: 'Courier New', monospace; margin: 0; padding: 20px; }
-        .terminal { max-width: 900px; margin: auto; border: 1px solid #333; padding: 40px; background: #0a0a0a; position: relative; }
-        h1 { color: var(--glow); text-align: center; letter-spacing: 10px; text-shadow: 0 0 10px var(--glow); }
-        .nav-btn { display: inline-block; padding: 10px; border: 1px solid var(--sub); color: var(--sub); text-decoration: none; margin-bottom: 20px; }
-        .nav-btn:hover { background: var(--sub); color: black; }
-        .item-card { background: #111; border: 1px solid #222; padding: 20px; margin-bottom: 15px; display: flex; justify-content: space-between; }
-        input { background: #111; border: 1px solid #333; color: var(--glow); padding: 10px; margin: 5px; }
-        button { background: var(--sub); cursor: pointer; border: none; padding: 10px; font-weight: bold; }
-    </style>
+    <title>Market</title>
 </head>
 <body>
-    <div class="terminal">
-        <h1>FUEL & BONE</h1>
-        <a href="/map" class="nav-btn">[ ACCESS GLOBAL TACTICAL MAP ]</a>
 
-        <div style="border: 1px solid #222; padding: 20px; margin-bottom: 30px;">
-            <form action="/list" method="post">
-                <input type="text" name="item" placeholder="IDENTIFY SCRAP" required>
-                <input type="number" name="cals" placeholder="₵ VALUE" required>
-                <input type="text" name="sector" placeholder="SECTOR" required>
-                <button type="submit">BROADCAST</button>
-            </form>
-        </div>
+<h1>Wallet: {{ wallet }}</h1>
 
-        <div class="feed">
-            {% for item in ledger|reverse %}
-            <div class="item-card">
-                <div>
-                    <strong>{{ item.name }}</strong><br>
-                    <small style="color: var(--sub);">LOC: {{ item.sector }}</small>
-                </div>
-                <div style="color: var(--glow); font-size: 1.2rem;">₵{{ item.cals }}</div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
+<h2>Items</h2>
+
+{% for item in ledger %}
+<div style="border:1px solid #ccc; padding:10px; margin:10px;">
+    <h3>{{ item.name }}</h3>
+    <p>Rarity: {{ item.rarity }}</p>
+    <p>Value: {{ item.cals }}</p>
+    <p>Condition: {{ item.condition }}</p>
+    <p>Bid: {{ item.current_bid }}</p>
+</div>
+{% endfor %}
+
 </body>
 </html>
