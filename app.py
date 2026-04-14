@@ -339,7 +339,49 @@ def list_item():
 # =========================
 
 if __name__ == "__main__":
-    threading.Thread(target=auction_engine, daemon=True).start()
-    threading.Thread(target=board_shuffler, daemon=True).start()
 
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    # =========================
+    # WORLD LOOP (GAME ENGINE)
+    # =========================
+    def world_events():
+        global user_wallet
+
+        while True:
+            time.sleep(5)
+
+            with lock:
+                # 🌍 passive income
+                user_wallet += random.randint(1, 5)
+
+                # 🔥 world spawning system
+                if len(ledger_store) < MAX_WORLD_ITEMS and random.random() < 0.2:
+                    ledger_store.append(gen_item("world_event"))
+
+                # 🤖 bot idle behavior
+                for bot in BOTS:
+                    if random.random() < 0.1:
+                        bot["wallet"] += random.randint(1, 10)
+
+                save_data()
+
+    # =========================
+    # START BACKGROUND THREADS
+    # =========================
+    threads = [
+        threading.Thread(target=auction_engine, daemon=True),
+        threading.Thread(target=board_shuffler, daemon=True),
+        threading.Thread(target=world_events, daemon=True),
+    ]
+
+    for t in threads:
+        t.start()
+
+    # =========================
+    # START FLASK SERVER
+    # =========================
+    app.run(
+        host="0.0.0.0",
+        port=5000,
+        debug=False,
+        use_reloader=False  # IMPORTANT for Docker stability
+    )
