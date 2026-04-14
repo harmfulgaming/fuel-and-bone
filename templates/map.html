@@ -10,15 +10,36 @@
 {% for z in zones %}
 <div style="margin:10px; border:1px solid black; padding:10px;">
     <h3>{{ z.name }}</h3>
-    <button onclick="harvest({{ z.id }})">Harvest</button>
+    <button onclick="harvest({{ z.id }}, this)">Harvest</button>
 </div>
 {% endfor %}
 
 <script>
-function harvest(id){
-    fetch(`/harvest/${id}`, {method:"POST"})
+function harvest(id, btn){
+    btn.disabled = true;
+
+    fetch(`/harvest/${id}`, { method: "POST" })
     .then(r => r.json())
-    .then(data => alert(JSON.stringify(data)));
+    .then(data => {
+
+        if (data.status === "cooldown") {
+            alert("⏳ Zone is on cooldown!");
+        } 
+        else if (data.status === "ok") {
+            alert(
+                "⛏️ Loot gained:\n" +
+                JSON.stringify(data.loot, null, 2)
+            );
+        } 
+        else {
+            alert("Something went wrong");
+        }
+
+        // small cooldown UX delay (matches backend 20s cooldown)
+        setTimeout(() => {
+            btn.disabled = false;
+        }, 2000);
+    });
 }
 </script>
 
