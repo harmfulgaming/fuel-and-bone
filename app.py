@@ -8,8 +8,8 @@ app = Flask(__name__)
 # =========================
 
 DATA_FILE = "save_data.json"
-OFFLINE_MODE = False
 STARTING_CREDITS = 100
+OFFLINE_MODE = False
 
 lock = threading.Lock()
 
@@ -29,12 +29,10 @@ BOTS = [
 ]
 
 # =========================
-# WORLD DATA
+# WORLD
 # =========================
 
 G_NAMES = ["Rusted Exo-Leg", "Nuclear Cell", "Void-Plate", "Ion Battery", "Tech-Shard"]
-
-G_SECTORS = ["SEC-09", "SEC-12", "SEC-44"]
 
 HARVEST_ZONES = [
     {"id": 1, "name": "North Ridge", "lat": 40.7, "lng": -74.0},
@@ -85,16 +83,16 @@ def load_data():
 
 
 # =========================
-# RARITY + ITEMS
+# ITEM SYSTEM
 # =========================
 
 def roll_rarity():
     r = random.randint(1, 100)
     if r == 1:
         return "legendary"
-    elif r <= 8:
+    if r <= 8:
         return "epic"
-    elif r <= 30:
+    if r <= 30:
         return "rare"
     return "common"
 
@@ -116,40 +114,85 @@ def gen_item(origin="system"):
     }
 
 
-# init world
+# =========================
+# INIT WORLD
+# =========================
+
 load_data()
+
 if not ledger_store:
     ledger_store = [gen_item() for _ in range(8)]
 
 
 # =========================
-# BOT LOGIC
+# SCAN SYSTEM (FIXED)
 # =========================
 
-def evaluate(bot, item):
-    rarity_bonus = {"common":1, "rare":1.3, "epic":1.8, "legendary":3}[item["rarity"]]
-    score = item["cals"] * (item["condition"]/100) * rarity_bonus
+@app.route("/scan")
+def scan():
+    with lock:
+        if ledger_store and random.random() < 0.4:
+            item = random.choice(ledger_store)
 
-    if bot["type"] == "sniper":
-        score *= 1.4 if item["rarity"] in ["epic","legendary"] else 0.7
-    elif bot["type"] == "value_hunter":
-        score *= 1.2 if item["rarity"] == "rare" else 0.9
+            return jsonify({
+                "status": "found",
+                "item": {
+                    "name": item["name"],
+                    "rarity": item["rarity"]
+                }
+            })
 
-    return score
+    return jsonify({"status": "nothing"})
 
 
-def bot_bid(bot, item):
-    if item["cals"] > bot["wallet"]:
-        return
+# =========================
+# HARVEST SYSTEM
+# =========================
 
-    if evaluate(bot, item) < item["current_bid"]:
-        return
+@app.route("/harvest/<int:zone_id>", methods=["POST"])
+def harvest(zone_id):
+    now = time.time()
 
-    bid = item["current_bid"] + random.randint(10, 120)
+    with lock:
+        if player_cooldowns.get(zone_id, 0) > now:
+            return jsonify({"status": "cooldown"})
 
-    if bid <= bot["wallet"]:
-        item["current_bid"] = bid
-        item["highest_bidder"] = bot["id"]
+        loot = {
+            "Scrap": random.randint(20, 100),
+            "Circuit": random.randint(10, 50),
+            "Energy": random.randint(5, 30)
+        }
+
+        for k, v in loot.items():
+            player_inventory["materials"][k] = player_inventory["materials"].get(k, 0) + v
+
+        player_cooldowns[zone_id] = now + 20
+
+    return jsonify({"status": "ok", "loot": loot})
+
+
+# =========================
+# CRAFTING
+# =========================
+
+@app.route("/craft/<item>", methods=["POST"])
+def craft(item):
+    with lock:
+        if item not in RECIPES:
+            return jsonify({"status": "invalid"})
+
+        inv = player_inventory["materials"]
+
+        for k, v in RECIPES[item].items():
+            if inv.get(k, 0) < v:
+                return jsonify({"status": "not enough"})
+
+        for k, v in RECIPES[item].items():
+            inv[k] -= v
+
+        ledger_store.append(gen_item("crafted"))
+
+    return jsonify({"status": "crafted"})
 
 
 # =========================
@@ -163,14 +206,18 @@ def auction_engine():
         time.sleep(2)
 
         with lock:
-            items = [i for i in ledger_store if i["origin"] in ["user","system"]]
+            items = list(ledger_store)
 
         for item in items:
 
             with lock:
                 for bot in BOTS:
                     if random.random() < 0.5:
-                        bot_bid(bot, item)
+                        if item["current_bid"] < bot["wallet"]:
+                            bid = item["current_bid"] + random.randint(10, 120)
+                            if bid <= bot["wallet"]:
+                                item["current_bid"] = bid
+                                item["highest_bidder"] = bot["id"]
 
             if time.time() > item["end_time"]:
 
@@ -183,73 +230,24 @@ def auction_engine():
                             price = item["current_bid"]
                             winner["wallet"] -= price
                             user_wallet += price
-                            print(f"SOLD {item['name']} -> {winner['type']} for {price}")
 
                     ledger_store = [i for i in ledger_store if i["id"] != item["id"]]
-
-                    new_item = gen_item()
-                    if new_item:
-                        ledger_store.append(new_item)
+                    ledger_store.append(gen_item())
 
                     save_data()
 
 
 # =========================
-# MAP HARVEST SYSTEM
-# =========================
-
-def harvest(zone_id):
-    now = time.time()
-
-    if player_cooldowns.get(zone_id,0) > now:
-        return {"status":"cooldown"}
-
-    loot = {
-        "Scrap": random.randint(20,100),
-        "Circuit": random.randint(10,50),
-        "Energy": random.randint(5,30)
-    }
-
-    for k,v in loot.items():
-        player_inventory["materials"][k] = player_inventory["materials"].get(k,0) + v
-
-    player_cooldowns[zone_id] = now + 20
-
-    return {"status":"ok","loot":loot}
-
-
-# =========================
-# CRAFTING
-# =========================
-
-def craft(item):
-    if item not in RECIPES:
-        return {"status":"invalid"}
-
-    inv = player_inventory["materials"]
-
-    for k,v in RECIPES[item].items():
-        if inv.get(k,0) < v:
-            return {"status":"not enough"}
-
-    for k,v in RECIPES[item].items():
-        inv[k] -= v
-
-    ledger_store.append(gen_item("crafted"))
-
-    return {"status":"crafted"}
-
-
-# =========================
-# THREADS
+# BOARD SHUFFLER
 # =========================
 
 def board_shuffler():
     while True:
         time.sleep(40)
+
         with lock:
             if ledger_store:
-                ledger_store.pop(random.randint(0,len(ledger_store)-1))
+                ledger_store.pop(random.randint(0, len(ledger_store)-1))
                 ledger_store.append(gen_item())
                 save_data()
 
@@ -266,22 +264,15 @@ def home():
 def map_page():
     return render_template("map.html", zones=HARVEST_ZONES)
 
-@app.route("/harvest/<int:zone_id>", methods=["POST"])
-def harvest_route(zone_id):
-    return jsonify(harvest(zone_id))
-
-@app.route("/craft/<name>", methods=["POST"])
-def craft_route(name):
-    return jsonify(craft(name))
 
 @app.route("/list", methods=["POST"])
 def list_item():
     with lock:
-        ledger_store.append({
-            **gen_item("user"),
-            "name": request.form.get("item"),
-            "cals": int(request.form.get("cals"))
-        })
+        item = gen_item("user")
+        item["name"] = request.form.get("item")
+        item["cals"] = int(request.form.get("cals"))
+
+        ledger_store.append(item)
         save_data()
 
     return redirect("/")
@@ -292,8 +283,7 @@ def list_item():
 # =========================
 
 if __name__ == "__main__":
-    if not OFFLINE_MODE:
-        threading.Thread(target=auction_engine, daemon=True).start()
-        threading.Thread(target=board_shuffler, daemon=True).start()
+    threading.Thread(target=auction_engine, daemon=True).start()
+    threading.Thread(target=board_shuffler, daemon=True).start()
 
-    app.run(debug=False, host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5000, debug=False)
