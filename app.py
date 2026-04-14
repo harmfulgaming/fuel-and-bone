@@ -38,7 +38,7 @@ def update_market(item):
 
 def market_cap(item):
     base = MARKET_PRICE.get(item["name"], item["cals"])
-    return base * 1.2  # 20% max inflation
+    return base * 1.2
 
 # =========================
 # BOT SYSTEM
@@ -69,7 +69,7 @@ RECIPES = {
 }
 
 # =========================
-# WORLD LIMIT CHECK
+# WORLD LIMIT
 # =========================
 
 def can_spawn():
@@ -103,7 +103,7 @@ def load_data():
             pass
 
 # =========================
-# RARITY + ITEM SYSTEM
+# ITEM SYSTEM
 # =========================
 
 def roll_rarity():
@@ -128,7 +128,7 @@ def gen_item(origin="system"):
         "condition": random.randint(10, 100),
         "origin": origin,
 
-        # 🌍 REAL WORLD COORDS
+        # 🌍 REAL COORDS FOR SCAV-NET MAP
         "lat": random.uniform(-80, 80),
         "lng": random.uniform(-180, 180),
 
@@ -147,7 +147,7 @@ if not ledger_store:
     ledger_store = [gen_item() for _ in range(8)]
 
 # =========================
-# SCAN SYSTEM
+# SCAN SYSTEM (SCAV-NET)
 # =========================
 
 @app.route("/scan")
@@ -224,14 +224,17 @@ def craft(item):
     return jsonify({"status": "crafted"})
 
 # =========================
-# SMART BOT SYSTEM
+# BOT LOGIC (SMART + MARKET SAFE)
 # =========================
 
-def bot_decision(bot, item):
+def bot_bid(bot, item):
     cap = market_cap(item)
 
     if item["current_bid"] > cap:
-        return False
+        return
+
+    if item["cals"] > bot["wallet"]:
+        return
 
     score = item["cals"] * (item["condition"] / 100)
 
@@ -241,17 +244,11 @@ def bot_decision(bot, item):
     if bot["type"] == "value_hunter":
         score *= 1.2 if item["cals"] < cap else 0.6
 
-    return score > item["current_bid"]
-
-def bot_bid(bot, item):
-    if item["cals"] > bot["wallet"]:
-        return
-
-    if not bot_decision(bot, item):
+    if score <= item["current_bid"]:
         return
 
     bid = item["current_bid"] + random.randint(10, 80)
-    bid = min(bid, market_cap(item))
+    bid = min(bid, cap)
 
     if bid <= bot["wallet"]:
         item["current_bid"] = bid
@@ -299,7 +296,7 @@ def auction_engine():
                     save_data()
 
 # =========================
-# BOARD SHUFFLER (LIMITED WORLD)
+# BOARD SHUFFLER
 # =========================
 
 def board_shuffler():
