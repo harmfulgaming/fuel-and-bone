@@ -1,74 +1,26 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>SCAV-NET | Global Tactical</title>
-    <style>
-        :root { --radar: #00ff00; --bg: #050505; }
-        body { background: var(--bg); color: var(--radar); font-family: 'Courier New', monospace; margin: 0; overflow: hidden; }
-        
-        .map-monitor { 
-    width: 100vw; 
-    height: 100vh; 
-    position: relative; 
-    background-color: #000;
-    /* High-detail World Map */
-    background-image: url('https://upload.wikimedia.org/wikipedia/commons/c/c4/Earth_map_fixed.svg');
-    background-size: 85%;
-    background-repeat: no-repeat;
-    background-position: center;
-    /* This filter chain makes the map glow neon green against the black */
-    filter: invert(1) brightness(1.5) sepia(1) saturate(5) hue-rotate(70deg); 
-    z-index: 1;
-} 
-        /* The sweeping radar line */
-        .sweep {
-            width: 200vmax; height: 200vmax; position: absolute; top: 50%; left: 50%;
-            background: conic-gradient(from 0deg, rgba(0,255,0,0) 90%, rgba(0,255,0,0.15) 100%);
-            animation: rotate 10s linear infinite; transform-origin: center; z-index: 10;
-        }
-        @keyframes rotate { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
-        
-        /* The Blips */
-        .sector { width: 6px; height: 6px; background: #00ff00; border-radius: 50%; position: absolute; z-index: 20; box-shadow: 0 0 10px #00ff00; }
-        
-        .hud { position: absolute; top: 20px; left: 20px; border: 1px solid var(--radar); padding: 15px; background: rgba(0,0,0,0.9); z-index: 100; box-shadow: 0 0 15px rgba(0,255,0,0.2); }
-        .back-btn { position: absolute; bottom: 30px; left: 30px; color: var(--radar); border: 1px solid var(--radar); padding: 10px; text-decoration: none; z-index: 101; background: black; font-weight: bold; }
-    </style>
+    <title>Map</title>
 </head>
 <body>
-    <div class="map-monitor" id="map-container">
-        <div class="sweep"></div>
-        
-        {% for item in ledger %}
-        <div class="sector" style="top: {{ range(25, 75)|random }}%; left: {{ range(20, 80)|random }}%;"></div>
-        {% endfor %}
 
-        <div class="hud">
-            <h2 style="margin:0; font-size: 1.2rem;">GLOBAL ASSET RECOVERY</h2>
-            <div id="status-text" style="font-size: 10px; margin-top: 5px;">SATELLITE LINK: ESTABLISHED // SCANNING PLANET...</div>
-        </div>
-        
-        <a href="/" class="back-btn">< EXIT TO TERMINAL</a>
-    </div>
+<h1>World Map</h1>
 
-    <script>
-        function backgroundScan() {
-            fetch('/scan')
-                .then(res => res.json())
-                .then(data => {
-                    if (data.status === "found") {
-                        const dot = document.createElement('div');
-                        dot.className = 'sector';
-                        // Keep dots within the map area
-                        dot.style.top = (Math.random() * 50 + 25) + '%';
-                        dot.style.left = (Math.random() * 60 + 20) + '%';
-                        document.getElementById('map-container').appendChild(dot);
-                        document.getElementById('status-text').innerText = "SIGNAL DETECTED: " + data.item.name;
-                    }
-                });
-        }
-        setInterval(backgroundScan, 5000);
-    </script>
+{% for z in zones %}
+<div style="margin:10px; border:1px solid black; padding:10px;">
+    <h3>{{ z.name }}</h3>
+    <button onclick="harvest({{ z.id }})">Harvest</button>
+</div>
+{% endfor %}
+
+<script>
+function harvest(id){
+    fetch(`/harvest/${id}`, {method:"POST"})
+    .then(r => r.json())
+    .then(data => alert(JSON.stringify(data)));
+}
+</script>
+
 </body>
 </html>
